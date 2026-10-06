@@ -1,24 +1,25 @@
-// Seed do servidor backend do Document Management System.
-//
-// Este arquivo é apenas um ponto de partida mínimo. Ao longo do workshop você
-// vai usar o Agent Mode do GitHub Copilot para construir as camadas:
-//   - routes/       (definição das rotas)
-//   - controllers/  (entrada HTTP e validação)
-//   - services/     (regras de negócio)
-//   - repositories/ (persistência: arquivos locais + metadados em memória)
-//
-// Restrição do projeto: uploads são gravados no filesystem local da aplicação
-// usando multer com diskStorage. Não utilize provedores externos.
-
 const express = require('express');
+const path = require('node:path');
+const createDocumentRepository = require('./repositories/documentRepository');
+const createDocumentService = require('./services/documentService');
+const createDocumentController = require('./controllers/documentController');
+const createDocumentRouter = require('./routes/documentRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const storageDirectory = path.resolve(__dirname, '..', process.env.STORAGE_DIR || 'storage');
+const maxFileSize = Number(process.env.MAX_FILE_SIZE ?? 10485760);
+if (!Number.isSafeInteger(maxFileSize) || maxFileSize <= 0) {
+  throw new Error('MAX_FILE_SIZE deve ser um inteiro positivo em bytes.');
+}
+
+const repository = createDocumentRepository(storageDirectory);
+const service = createDocumentService(repository);
+const controller = createDocumentController(service);
 
 app.use(express.json());
+app.use(createDocumentRouter(controller, { storageDirectory, maxFileSize }));
 
-// Endpoint de verificação de saúde. As demais rotas (/upload, /documents,
-// /documents/:id/download) serão implementadas durante o Passo 2.
 app.get('/health', (req, res) => {
   res.json({ status: 'ok' });
 });
