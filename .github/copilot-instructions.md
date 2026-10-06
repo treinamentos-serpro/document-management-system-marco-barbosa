@@ -18,6 +18,7 @@ Sistema web para gestão de documentos com:
 - Backend: Node.js + Express (CommonJS)
 - Frontend: React + Vite (ESM)
 - Testes backend: runner nativo do Node (`node:test`)
+- Frontend requer Node.js 24 ou superior
 - Sem TypeScript nesta fase (JavaScript puro)
 
 ## Princípios obrigatórios
@@ -39,11 +40,13 @@ Separe responsabilidades em quatro camadas dentro de `backend/src`:
 Fluxo de dependência: `routes -> controllers -> services -> repositories`.
 Camadas internas não conhecem camadas externas.
 
-## Endpoints previstos
+## Backend
 
-- `POST /upload` - envia um documento
-- `GET /documents` - lista os documentos
-- `GET /documents/:id/download` - baixa um documento
+- Mantenha o fluxo `routes -> controllers -> services -> repositories`; `backend/src/app.js` compõe as dependências.
+- Os arquivos seguem o padrão camelCase existente, como `documentRoutes.js`, `documentController.js`, `documentService.js` e `documentRepository.js`.
+- As operações de documentos exigem `X-User-Id`. Esse valor é apenas contexto fornecido pelo cliente, não autenticação.
+- Erros HTTP usam `{ error: { code, message } }`; não exponha caminhos locais nem stack traces.
+- Os endpoints atuais são `POST /upload`, `GET /documents` e `GET /documents/:id/download`.
 
 ## Armazenamento (restrição importante)
 
@@ -53,13 +56,14 @@ Camadas internas não conhecem camadas externas.
   memória nesta fase inicial.
 - Não utilize provedores de armazenamento externos ou serviços de upload de
   terceiros. O armazenamento é estritamente local à aplicação.
+- `PORT`, `STORAGE_DIR` e `MAX_FILE_SIZE` são configuráveis por ambiente; confira os defaults na especificação.
+- Reiniciar o backend limpa os metadados em memória, embora os arquivos permaneçam no disco.
 
 ## Convenções do frontend
 
 - Componentes funcionais com React Hooks
 - Organização baseada em componentes: `components/`, `pages/`, `services/`
-- A comunicação com o backend é feita via `fetch`, através do prefixo `/api`
-  (proxy configurado no Vite)
+- Centralize chamadas `fetch` em `frontend/src/services/` e use o prefixo `/api`; o proxy do Vite o remove antes de encaminhar ao backend.
 - Reutilize componentes e evite duplicação
 
 ## Estilo de código
@@ -74,3 +78,5 @@ Camadas internas não conhecem camadas externas.
 - Não quebrar funcionalidades existentes
 - Manter o seed simples e evolutivo
 - Preferir dependências já presentes no `package.json`
+- Consulte [docs/specs/dms-spec.md](../docs/specs/dms-spec.md) para os contratos esperados, mas confira o código: a especificação não garante que tudo esteja implementado.
+- Valide mudanças do backend com `cd backend && npm test`; valide mudanças do frontend com `cd frontend && npm run build` (Node.js 24+). Não há script de lint configurado.
